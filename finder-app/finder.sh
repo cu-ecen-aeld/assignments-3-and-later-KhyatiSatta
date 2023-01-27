@@ -33,7 +33,7 @@ fi
 n_files=$(grep -r -l "$exp" "$direc" | wc -l )
 n_lines=$(grep -r "$exp" "$direc" | wc -l )
 
-echo "The number of files are $n_files and the number of matching lines are $n_lines "
+echo "The number of files are $n_files and the number of matching lines are $n_lines"
 
 exit 0
 
