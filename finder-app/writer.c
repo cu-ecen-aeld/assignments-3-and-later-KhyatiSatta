@@ -12,7 +12,7 @@ File Description - The following application is to write a given expression to a
 #include <unistd.h>
 #include<string.h>
 
-#define ERROR_CODE (-1u)
+#define ERROR (-1u)
 
 //Function to write the given expression to the file
 int fileWrite(int file_descriptor , char *file_name , char *expr)
@@ -24,7 +24,7 @@ int fileWrite(int file_descriptor , char *file_name , char *expr)
 
     // Error check 1: Check if the write operation was successful
     // It will return -1 if the write operation was interrupted
-    if(error_code == -1){
+    if(error_code == ERROR){
         syslog(LOG_ERR , "The write operation for the string %s to the file %s was unsucessful!\n" , expr , file_name);
         return 1;
     }
@@ -63,7 +63,7 @@ int main(int argc , char *argv[])
 
     // Error check 2: Check if the file exists. This is achieved by opening the file and checking if there
     // is any error in the file descriptor
-    if(file_descriptor == -1){
+    if(file_descriptor == ERROR){
         printf("The file %s does not exist.Please create the file\n" , argv[1]);
         syslog(LOG_ERR , "The file %s does not exist. Please create the file\n", argv[1]);
     }
