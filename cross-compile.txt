@@ -1,10 +1,15 @@
-aarch64-none-linux-gnu-gcc -print-sysroot:
+/*ECEN-5713 Advanced Embedded Software Development
+Author - Khyati Satta
+Date - 26 January 2023
+File Description - Text file to show successful installation of the toolchain
+*/
+
+1. aarch64-none-linux-gnu-gcc -print-sysroot:
 
 /home/install-lnx/gcc-arm-10.2-2020.11-x86_64-aarch64-none-linux-gnu/bin/../aarch64-none-linux-gnu/libc
 
 
-
-aarch64-none-linux-gnu-gcc -v:
+2. aarch64-none-linux-gnu-gcc -v:
 
 Using built-in specs.
 COLLECT_GCC=aarch64-none-linux-gnu-gcc

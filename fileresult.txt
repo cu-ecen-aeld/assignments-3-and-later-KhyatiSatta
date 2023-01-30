@@ -1,3 +1,9 @@
-file ./writer:
+/*ECEN-5713 Advanced Embedded Software Development
+Author - Khyati Satta
+Date - 26 January 2023
+File Description - Text file to show successful cross-compilation using the file utility
+*/
+
+1. file ./writer:
 
 ./writer: ELF 64-bit LSB executable, ARM aarch64, version 1 (SYSV), dynamically linked, interpreter /lib/ld-linux-aarch64.so.1, for GNU/Linux 3.7.0, with debug_info, not stripped
