@@ -40,8 +40,24 @@ void signalHandler(int signal)
     switch(signal) {
 
         case SIGINT: 
-        case SIGTERM:
         syslog(LOG_DEBUG ,"Caught signal SIGINT, exiting\n");
+        free(write_buffer);
+        if(close(sd) == -1){
+            syslog(LOG_ERR , "close sd\n");
+        }
+        if(close(fd) == -1){
+            syslog(LOG_ERR , "close fd\n");
+        }
+        if(close(new_fd) == -1){
+            syslog(LOG_ERR , "close new fd\n");
+        }
+        if(unlink("/var/tmp/aesdsocketdata") == -1){
+            syslog(LOG_ERR , "unlink file\n");
+        }
+        break;
+
+        case SIGTERM:
+        syslog(LOG_DEBUG ,"Caught signal SIGTERM, exiting\n");
         free(write_buffer);
         if(close(sd) == -1){
             syslog(LOG_ERR , "close sd\n");
@@ -358,6 +374,7 @@ int main(int argc , char *argv[])
         // Free the send buffer
         free(send_buffer);
 
+        // Reallocate the buffer to original size
         write_buffer = realloc(write_buffer , BUFFER_SIZE);
 
         // Close the socket descriptor
@@ -366,6 +383,9 @@ int main(int argc , char *argv[])
         syslog(LOG_INFO , "Closed connection from %s\n", inet_ntoa(ip_client->sin_addr));
 
     }
+
+    // End logging
+    closelog();
 
     
     return 0;
