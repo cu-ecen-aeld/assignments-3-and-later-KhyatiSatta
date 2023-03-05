@@ -6,10 +6,10 @@
 all: aesdsocket
 
 CROSS_COMPILE = 
-CC = gcc
+CC ?= $(CROSS_COMPILE)gcc
 
 aesdsocket: aesdsocket.c
-	$(CROSS_COMPILE)$(CC) aesdsocket.c -lrt -lpthread -Wall -Werror -g -o aesdsocket
+	$(CC) aesdsocket.c -lrt -lpthread -Wall -Werror -g -o aesdsocket
 
 clean:
 	rm -rf *.o aesdsocket 
