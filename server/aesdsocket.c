@@ -509,12 +509,13 @@ int main(int argc , char *argv[])
 
     // Bind the socket to the local port; make it non-blocking
     // Reference: https://jameshfisher.com/2017/04/05/set_socket_nonblocking/#:~:text=To%20mark%20a%20socket%20as,Here's%20a%20complete%20example.
-    int non_blocking_flags = fcntl(sd, F_GETFL);
-    fcntl(sd, F_SETFL, non_blocking_flags | O_NONBLOCK);
+    int flags = fcntl(sd, F_GETFL);
+    fcntl(sd, F_SETFL, flags | O_NONBLOCK);
     ret_status = bind(sd , servinfo->ai_addr , servinfo->ai_addrlen);
     // Error check
     if (ERROR == ret_status){
         syslog(LOG_ERR , "bind\n");
+        printf("Fails: %d\n", errno);
         return -1;
     }
 
@@ -560,16 +561,17 @@ int main(int argc , char *argv[])
             logTimestamp();
         }
 
-        // Continuously restarting connections in the loop
+        // Continuously restarting connections in the while(1) loop
         int new_fd = accept(sd, (struct sockaddr *)&client_addr, &addr_size);
 
         // Error check
         if (ERROR == new_fd) {
-            syslog(LOG_ERR , "accept: %d\n", errno); 
             if (errno == EWOULDBLOCK) {
                 
                 continue;
-            }     
+            }
+            syslog(LOG_ERR , "accept\n");   
+            continue;
         }
 
         // Malloc new node
