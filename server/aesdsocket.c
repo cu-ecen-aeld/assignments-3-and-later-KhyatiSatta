@@ -204,9 +204,16 @@ int createDaemon()
         
     // Redirect the stdin , stdout and stderror to /dev/null
     open ("/dev/null", O_RDWR);
-    dup (0); 
-    dup (0); 
-
+    ret_status = dup (0); 
+    if (ret_status == -1){
+        syslog(LOG_ERR , "dup\n");
+        return -1;
+    }
+    ret_status = dup (0); 
+    if (ret_status == -1){
+        syslog(LOG_ERR , "dup\n");
+        return -1;
+    }
     return 0;
 }
 /********************************************************************/
