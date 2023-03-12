@@ -94,7 +94,6 @@ struct aesd_buffer_entry *aesd_circular_buffer_find_entry_offset_for_fpos(struct
         // Store the previous value in another variable
         prev_cb_count = curr_cb_count;
     }
-
     // If the value was not found
     return NULL;
 }
