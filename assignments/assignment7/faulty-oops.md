@@ -1,5 +1,7 @@
 # echo “hello_world” > /dev/faulty  
 
+## Output from terminal
+
 Unable to handle kernel NULL pointer dereference at virtual address 0000000000000000  
 
 Mem abort info:  
@@ -85,4 +87,19 @@ Code: d2800001 d2800000 d503233f d50323bf (b900003f)
 ---[ end trace 2b0ea3e69672ac43 ]---  
 
 
-Welcome to Buildroot
+## Analysis
+
+As can be seen in the output attached above, the first line says that : Unable to handle kernel NULL pointer dereference at virtual address 0000000000000000, which means that the kernel tried to dereference a NULL pointer resulting in the given error  
+
+The mem abort section specifies the state of various bits in the mem abort register at the time of the fault. We can also see the state of a bunch of other bits in the data abort register too.  
+
+The <code> CPU: 0 PID: 151 mean the error occured when working with CPU 0 and the process id was 151.  
+
+The program counter, link register, and the stack pointer values before the faulty instruction are also recorded.  
+
+Information about register values from x0 to x29 can also be found before the faulty instruction was executed.  
+
+The call trace leading up to the faulty instruction is also recorded. This indicates the functions called up until the Oops.  
+In the line <code> faulty_write+0x14/0x20 [faulty] , 0x14 provides the offset from the function pointer.
+
+The line <code> Code: d2800001 d2800000 d503233f d50323bf (b900003f)  is hex dump of the machine code that was running at the time Oops occured.
