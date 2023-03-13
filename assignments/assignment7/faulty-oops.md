@@ -89,7 +89,7 @@ Code: d2800001 d2800000 d503233f d50323bf (b900003f)
 
 ## Analysis
 
-As can be seen in the output attached above, the first line says that : Unable to handle kernel NULL pointer dereference at virtual address 0000000000000000, which means that the kernel tried to dereference a NULL pointer resulting in the given error  
+As can be seen in the output attached above, the first line says that : <code>Unable to handle kernel NULL pointer dereference at virtual address 0000000000000000 </code>, which means that the kernel tried to dereference a NULL pointer resulting in the given error  
 
 The mem abort section specifies the state of various bits in the mem abort register at the time of the fault. We can also see the state of a bunch of other bits in the data abort register too.  
 
