@@ -58,21 +58,6 @@ struct aesd_buffer_entry *aesd_circular_buffer_find_entry_offset_for_fpos(struct
     return NULL;
    }
 
-   // Local variable to store the resultant bytes travelled in the cirular buffer
-   size_t res_size_buffer = 0;
-   uint8_t max_writes_buffer = 0;
-
-   // Calculate the total number of bytes in the circular buffer
-   while(max_writes_buffer < AESDCHAR_MAX_WRITE_OPERATIONS_SUPPORTED){
-    res_size_buffer += buffer->entry[max_writes_buffer].size;
-    max_writes_buffer++;
-   }
-
-   // Error check 2: If the requested offset is greater than the actual number of bytes in the buffer
-   if (res_size_buffer < char_offset){
-    return NULL;
-   }
-
     // Temporary variable to hold the current outoffs value
     // First place to start reading from
     uint8_t rptr = buffer->out_offs;
@@ -81,7 +66,6 @@ struct aesd_buffer_entry *aesd_circular_buffer_find_entry_offset_for_fpos(struct
     // The second variable is to hold the number of bytes till the previous iteration to calculate the entry_offset_byte_rtn value
     size_t curr_cb_count = 0 , prev_cb_count = 0;
     
-
     for (int i = 0; i < AESDCHAR_MAX_WRITE_OPERATIONS_SUPPORTED; i++){
         curr_cb_count += buffer->entry[rptr].size;
         // If the requested offset fits in the range of the entry's size
@@ -94,7 +78,7 @@ struct aesd_buffer_entry *aesd_circular_buffer_find_entry_offset_for_fpos(struct
         // Store the previous value in another variable
         prev_cb_count = curr_cb_count;
     }
-    // If the value was not found
+    // If the value was not found, the requested offset could be greater than the number of bytes in the buffer
     return NULL;
 }
 
@@ -105,15 +89,20 @@ struct aesd_buffer_entry *aesd_circular_buffer_find_entry_offset_for_fpos(struct
 * Any necessary locking must be handled by the caller
 * Any memory referenced in @param add_entry must be allocated by and/or must have a lifetime managed by the caller.
 */
-void aesd_circular_buffer_add_entry(struct aesd_circular_buffer *buffer, const struct aesd_buffer_entry *add_entry)
+char* aesd_circular_buffer_add_entry(struct aesd_circular_buffer *buffer, const struct aesd_buffer_entry *add_entry)
 {
     /**
     * TODO: implement per description
     */
 
-   // Check for full condition before writing to the buffer; if full, increment the read pointer
+   // To return the overrun value
+   char *ret_ptr = NULL;
+
+
+   // Check for full condition before writing to the buffer; if full, increment the read pointer and return the last written value (most recent)
    if (buffer->full == true) {
     buffer->out_offs = move_pointer(buffer->out_offs);
+    ret_ptr = (char *)buffer->entry[buffer->in_offs].buffptr;
    }
 
     // Write the entry (data and the number of bytes) to the buffer
@@ -127,6 +116,8 @@ void aesd_circular_buffer_add_entry(struct aesd_circular_buffer *buffer, const s
     if (buffer->in_offs == buffer->out_offs){
         buffer->full = true;
     }
+
+    return ret_ptr;
 }
 
 /**

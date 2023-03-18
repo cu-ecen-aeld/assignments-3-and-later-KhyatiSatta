@@ -21,17 +21,27 @@
 int aesd_major =   0; // use dynamic major
 int aesd_minor =   0;
 
-MODULE_AUTHOR("Your Name Here"); /** TODO: fill in your name **/
+MODULE_AUTHOR("Khyati"); /** TODO: fill in your name **/
 MODULE_LICENSE("Dual BSD/GPL");
 
 struct aesd_dev aesd_device;
 
 int aesd_open(struct inode *inode, struct file *filp)
 {
+    // Reference: Linux Device Drivers book
+
+    // Device information
+    struct scull_dev *dev;
+
     PDEBUG("open");
     /**
      * TODO: handle open
      */
+
+    dev = container_of(inode->i_dev , struct aesd_dev , cdev);
+
+    filp->private_data = dev;
+
     return 0;
 }
 
@@ -41,6 +51,9 @@ int aesd_release(struct inode *inode, struct file *filp)
     /**
      * TODO: handle release
      */
+
+    // Reference: Linux Device Drivers book
+    // No code required as scull has no hardware to shut down
     return 0;
 }
 
@@ -63,6 +76,9 @@ ssize_t aesd_write(struct file *filp, const char __user *buf, size_t count,
     /**
      * TODO: handle write
      */
+
+    // Acquire the mutex lock
+
     return retval;
 }
 struct file_operations aesd_fops = {
