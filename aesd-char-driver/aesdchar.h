@@ -30,10 +30,10 @@ struct aesd_dev
      */
     struct cdev cdev;                                          /* Char device structure*/
 
-    struct aesd_circular_buffer character_circular_buffer;     /* Circular buffer*/
+    struct aesd_circular_buffer rw_circular_buffer;     /* Circular buffer*/
     struct mutex rw_mutex_lock;                                 /* Mutex   */
-    char *cpy_buffer;                                           /* Copy buffer to store the entries -> circular buffer */
-    size_t curr_cpy_size;                                       /* Size of the copy buffer */
+    size_t rw_buff_size;                                       /* Size of the copy buffer */
+    char *rw_buff_ptr;                                          
 };
 
 
