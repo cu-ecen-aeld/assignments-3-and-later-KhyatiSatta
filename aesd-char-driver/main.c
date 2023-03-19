@@ -280,7 +280,7 @@ int aesd_init_module(void)
 void aesd_cleanup_module(void)
 {
     struct aesd_buffer_entry *del_entry;
-    int del_idx;
+    uint8_t del_idx;
 
     dev_t devno = MKDEV(aesd_major, aesd_minor);
 
