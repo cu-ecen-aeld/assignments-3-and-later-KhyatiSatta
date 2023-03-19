@@ -40,13 +40,9 @@ int aesd_open(struct inode *inode, struct file *filp)
      * TODO: handle open
      */
 
-    printk(KERN_INFO "Open 1\n");
-
     dev = container_of(inode->i_cdev , struct aesd_dev , cdev);
 
     filp->private_data = dev;
-
-    printk(KERN_INFO "Open 2\n");
 
     return 0;
 }
@@ -150,8 +146,6 @@ ssize_t aesd_write(struct file *filp, const char __user *buf, size_t count,
 
     mutex_lock(&aesd_device.rw_mutex_lock);
 
-    printk(KERN_INFO "Write 1\n");
-
     // Use the kernel malloc function to allocate memory for data to be written (of count bytes)
     write_buffer = (char *)kmalloc(count, GFP_KERNEL);
     // Error check
@@ -159,8 +153,6 @@ ssize_t aesd_write(struct file *filp, const char __user *buf, size_t count,
         retval = -ENOMEM;
         goto clean;
     }
-
-    printk(KERN_INFO "Write 2\n");
         
     // Copy the data from the userspace into the kernel space
     if(copy_from_user(write_buffer, buf, count)) {
@@ -168,7 +160,6 @@ ssize_t aesd_write(struct file *filp, const char __user *buf, size_t count,
 		goto free;
 	}
 
-    printk(KERN_INFO "Write 2\n");
 
     // Check if any of the incoming bytes has '\n' (packet complete)
     for (i = 0; i < count; i++) {
