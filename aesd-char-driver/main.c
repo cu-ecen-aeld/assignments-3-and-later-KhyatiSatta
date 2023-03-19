@@ -279,15 +279,18 @@ int aesd_init_module(void)
 
 void aesd_cleanup_module(void)
 {
+    // printk(KERN_ALERT "Hello, KhyatiSatta\n");
     struct aesd_buffer_entry *del_entry;
+    // printk(KERN_ALERT "Hello, KhyatiSatta\n");
     uint8_t del_idx;
+    dev_t devno;
+    printk(KERN_ALERT "Hello, KhyatiSatta\n");
+    devno = MKDEV(aesd_major, aesd_minor);
 
-    dev_t devno = MKDEV(aesd_major, aesd_minor);
-
-    printk(KERN_INFO "Cleanup");
+    printk(KERN_ALERT "Hello, KhyatiSatta\n");
 
     cdev_del(&aesd_device.cdev);
-
+    printk(KERN_ALERT "Hello, KhyatiSatta\n");
     /**
      * TODO: cleanup AESD specific poritions here as necessary
      */
@@ -295,9 +298,12 @@ void aesd_cleanup_module(void)
     AESD_CIRCULAR_BUFFER_FOREACH(del_entry, &aesd_device.rw_circular_buffer, del_idx) {
       kfree(del_entry->buffptr);
     }
+    printk(KERN_ALERT "Hello, KhyatiSatta\n");
     mutex_destroy(&aesd_device.rw_mutex_lock);
+    printk(KERN_ALERT "Hello, KhyatiSatta\n");
 
     unregister_chrdev_region(devno, 1);
+    printk(KERN_ALERT "Hello, KhyatiSatta\n");
 }
 
 

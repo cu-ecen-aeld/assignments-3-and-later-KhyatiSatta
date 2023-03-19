@@ -5,7 +5,7 @@ cd `dirname $0`
 
 echo "Before unload"
 # invoke rmmod with all arguments we got
-rmmod -w $module || exit 1
+rmmod $module || exit 1
 echo "After unload"
 
 # Remove stale nodes
