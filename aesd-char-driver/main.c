@@ -254,16 +254,12 @@ int aesd_init_module(void)
     int result;
     result = alloc_chrdev_region(&dev, aesd_minor, 1,
             "aesdchar");
-    printk(KERN_ALERT "Hello, KhyatiSatta\n");
     aesd_major = MAJOR(dev);
-    printk(KERN_ALERT "Hello, KhyatiSatta\n");
     if (result < 0) {
         printk(KERN_WARNING "Can't get major %d\n", aesd_major);
         return result;
     }
-    printk(KERN_ALERT "Hello, KhyatiSatta\n");
     memset(&aesd_device,0,sizeof(struct aesd_dev));
-    printk(KERN_ALERT "Hello, KhyatiSatta\n");
 
     /**
      * TODO: initialize the AESD specific portion of the device
@@ -271,30 +267,23 @@ int aesd_init_module(void)
 
     // Initialize the mutex
     mutex_init(&aesd_device.rw_mutex_lock);
-    printk(KERN_ALERT "Hello, KhyatiSatta\n");
 
     result = aesd_setup_cdev(&aesd_device);
-    printk(KERN_ALERT "Hello, KhyatiSatta\n");
 
     if( result ) {
         unregister_chrdev_region(dev, 1);
     }
-    printk(KERN_ALERT "Hello, KhyatiSatta\n");
     return result;
 
 }
 
 void aesd_cleanup_module(void)
 {
-    // printk(KERN_ALERT "Hello, KhyatiSatta\n");
     struct aesd_buffer_entry *del_entry;
-    // printk(KERN_ALERT "Hello, KhyatiSatta\n");
     uint8_t del_idx;
     dev_t devno;
-    printk(KERN_ALERT "Hello, KhyatiSatta\n");
-    devno = MKDEV(aesd_major, aesd_minor);
 
-    printk(KERN_ALERT "Hello, KhyatiSatta\n");
+    devno = MKDEV(aesd_major, aesd_minor);
 
     cdev_del(&aesd_device.cdev);
     printk(KERN_ALERT "Hello, KhyatiSatta\n");
@@ -305,12 +294,9 @@ void aesd_cleanup_module(void)
     AESD_CIRCULAR_BUFFER_FOREACH(del_entry, &aesd_device.rw_circular_buffer, del_idx) {
       kfree(del_entry->buffptr);
     }
-    printk(KERN_ALERT "Hello, KhyatiSatta\n");
     mutex_destroy(&aesd_device.rw_mutex_lock);
-    printk(KERN_ALERT "Hello, KhyatiSatta\n");
 
     unregister_chrdev_region(devno, 1);
-    printk(KERN_ALERT "Hello, KhyatiSatta\n");
 }
 
 
