@@ -18,10 +18,12 @@
 #include <linux/cdev.h>
 #include <linux/fs.h> // file_operation
 #include "aesdchar.h"
+#include "linux/slab.h"
+#include "linux/string.h"
 int aesd_major =   0; // use dynamic major
 int aesd_minor =   0;
 
-MODULE_AUTHOR("Khyati"); /** TODO: fill in your name **/
+MODULE_AUTHOR("Khyati Satta"); /** TODO: fill in your name **/
 MODULE_LICENSE("Dual BSD/GPL");
 
 struct aesd_dev aesd_device;
@@ -31,16 +33,20 @@ int aesd_open(struct inode *inode, struct file *filp)
     // Reference: Linux Device Drivers book
 
     // Device information
-    struct scull_dev *dev;
+    struct aesd_dev *dev;
 
     PDEBUG("open");
     /**
      * TODO: handle open
      */
 
-    dev = container_of(inode->i_dev , struct aesd_dev , cdev);
+    printk(KERN_INFO "Open 1\n");
+
+    dev = container_of(inode->i_cdev , struct aesd_dev , cdev);
 
     filp->private_data = dev;
+
+    printk(KERN_INFO "Open 2\n");
 
     return 0;
 }
@@ -53,7 +59,7 @@ int aesd_release(struct inode *inode, struct file *filp)
      */
 
     // Reference: Linux Device Drivers book
-    // No code required as scull has no hardware to shut down
+    // No code required as device has no hardware to shut down
     return 0;
 }
 
@@ -61,25 +67,26 @@ ssize_t aesd_read(struct file *filp, char __user *buf, size_t count,
                 loff_t *f_pos)
 {
     ssize_t retval = 0;
-    PDEBUG("read %zu bytes with offset %lld",count,*f_pos);
-    /**
-     * TODO: handle read
-     */
 
     // Reference: Linux Device Drivers book
     // Store the filp paramter in the user structure
     struct aesd_dev *dev = filp->private_data;
     size_t entry_byte_offs = 0;
     ssize_t res_bytes = 0;
+    struct aesd_buffer_entry * ret_entry_buffer;
+    PDEBUG("read %zu bytes with offset %lld",count,*f_pos);
+    /**
+     * TODO: handle read
+     */
 
     // Acquire the mutex lock
-    mutex_lock(&aesd_dev.rw_mutex_lock);
+    mutex_lock(&aesd_device.rw_mutex_lock);
 
-    struct aesd_buffer_entry * ret_entry_buffer = aesd_circular_buffer_find_entry_offset_for_fpos(&dev->rw_circular_buffer , *f_pos , &entry_byte_offs);
+    ret_entry_buffer = aesd_circular_buffer_find_entry_offset_for_fpos(&dev->rw_circular_buffer , *f_pos , &entry_byte_offs);
 
     // Error check
     if (ret_entry_buffer == NULL){
-        *fpos = 0;
+        *f_pos = 0;
         goto clean;
     }
 
@@ -95,14 +102,14 @@ ssize_t aesd_read(struct file *filp, char __user *buf, size_t count,
         res_bytes = count;
     }
 
-     if (copy_to_user(buf, (ret_entry_buffer->buffptr + entry_byte_offs), res_bytes)) {
+    if (copy_to_user(buf, (ret_entry_buffer->buffptr + entry_byte_offs), res_bytes)) {
 		retval = -EFAULT;
 		goto clean;
 	}
 
-    ret_val = res_bytes;
+    retval = res_bytes;
 
-    clean : mutex_unlock(&aesd_dev.rw_mutex_lock);
+    clean : mutex_unlock(&aesd_device.rw_mutex_lock);
 
     return retval;
 }
@@ -110,12 +117,7 @@ ssize_t aesd_read(struct file *filp, char __user *buf, size_t count,
 ssize_t aesd_write(struct file *filp, const char __user *buf, size_t count,
                 loff_t *f_pos)
 {
-    ssize_t retval = -ENOMEM;
-    PDEBUG("write %zu bytes with offset %lld",count,*f_pos);
-    /**
-     * TODO: handle write
-     */
-
+    ssize_t retval = 0;
     // Write buffer
     char *write_buffer; 
 
@@ -137,10 +139,18 @@ ssize_t aesd_write(struct file *filp, const char __user *buf, size_t count,
     char *ret_ptr;
 
     PDEBUG("write %zu bytes with offset %lld",count,*f_pos);
+    /**
+     * TODO: handle write
+     */
+
+
+    PDEBUG("write %zu bytes with offset %lld",count,*f_pos);
 
     dev = filp->private_data;
 
     mutex_lock(&aesd_device.rw_mutex_lock);
+
+    printk(KERN_INFO "Write 1\n");
 
     // Use the kernel malloc function to allocate memory for data to be written (of count bytes)
     write_buffer = (char *)kmalloc(count, GFP_KERNEL);
@@ -149,12 +159,16 @@ ssize_t aesd_write(struct file *filp, const char __user *buf, size_t count,
         retval = -ENOMEM;
         goto clean;
     }
+
+    printk(KERN_INFO "Write 2\n");
         
     // Copy the data from the userspace into the kernel space
     if(copy_from_user(write_buffer, buf, count)) {
         retval = -EFAULT;
 		goto free;
 	}
+
+    printk(KERN_INFO "Write 2\n");
 
     // Check if any of the incoming bytes has '\n' (packet complete)
     for (i = 0; i < count; i++) {
@@ -192,7 +206,7 @@ ssize_t aesd_write(struct file *filp, const char __user *buf, size_t count,
         }
 
         // Copying temp_buffer contents into copy_buffer
-        memcpy(dev->rw_buff_ptr + dev->buffer_size, write_buffer, realloc_size);
+        memcpy(dev->rw_buff_ptr + dev->rw_buff_size, write_buffer, realloc_size);
         dev->rw_buff_size += realloc_size;        
     }
     
@@ -201,7 +215,7 @@ ssize_t aesd_write(struct file *filp, const char __user *buf, size_t count,
 
         // Fill in the structure entries
         write_cb_entrys.buffptr = dev->rw_buff_ptr;
-        write_cb_entrys.size = dev->buffer_size;
+        write_cb_entrys.size = dev->rw_buff_size;
         ret_ptr = aesd_circular_buffer_add_entry(&dev->rw_circular_buffer, &write_cb_entrys);
     
         // Freeing return_pointer if buffer is full 
@@ -274,6 +288,9 @@ int aesd_init_module(void)
 
 void aesd_cleanup_module(void)
 {
+    struct aesd_buffer_entry *del_entry;
+    int del_idx = 0;
+
     dev_t devno = MKDEV(aesd_major, aesd_minor);
 
     cdev_del(&aesd_device.cdev);
@@ -281,9 +298,6 @@ void aesd_cleanup_module(void)
     /**
      * TODO: cleanup AESD specific poritions here as necessary
      */
-
-    struct aesd_buffer_entry *del_entry;
-    uint8_t del_idx = 0;
 
     AESD_CIRCULAR_BUFFER_FOREACH(del_entry, &aesd_device.rw_circular_buffer, del_idx) {
       kfree(del_entry->buffptr);

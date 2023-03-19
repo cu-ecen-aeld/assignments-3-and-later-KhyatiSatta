@@ -16,7 +16,6 @@
 #endif
 
 #include "aesd-circular-buffer.h"
-#include <stdio.h>
 
 /**
  * Helper function to advance the in_offs or out_offs pointers
@@ -53,11 +52,6 @@ struct aesd_buffer_entry *aesd_circular_buffer_find_entry_offset_for_fpos(struct
     * TODO: implement per description
     */
 
-   // Error check 1: If the circular buffer is empty
-   if ((buffer->in_offs == buffer->out_offs) && (!buffer->full)){
-    return NULL;
-   }
-
     // Temporary variable to hold the current outoffs value
     // First place to start reading from
     uint8_t rptr = buffer->out_offs;
@@ -65,8 +59,16 @@ struct aesd_buffer_entry *aesd_circular_buffer_find_entry_offset_for_fpos(struct
     // Variable to hold the bytes in the circular buffer at the beginning of each iteration and at the end as well
     // The second variable is to hold the number of bytes till the previous iteration to calculate the entry_offset_byte_rtn value
     size_t curr_cb_count = 0 , prev_cb_count = 0;
-    
-    for (int i = 0; i < AESDCHAR_MAX_WRITE_OPERATIONS_SUPPORTED; i++){
+    int i = 0;
+
+   // Error check 1: If the circular buffer is empty
+   if ((buffer->in_offs == buffer->out_offs) && (!buffer->full)){
+    return NULL;
+   }
+
+    rptr = buffer->out_offs;
+     
+    for (i = 0; i < AESDCHAR_MAX_WRITE_OPERATIONS_SUPPORTED; i++){
         curr_cb_count += buffer->entry[rptr].size;
         // If the requested offset fits in the range of the entry's size
         if (curr_cb_count > char_offset){
