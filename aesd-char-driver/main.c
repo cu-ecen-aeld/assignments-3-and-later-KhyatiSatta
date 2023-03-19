@@ -254,12 +254,16 @@ int aesd_init_module(void)
     int result;
     result = alloc_chrdev_region(&dev, aesd_minor, 1,
             "aesdchar");
+    printk(KERN_ALERT "Hello, KhyatiSatta\n");
     aesd_major = MAJOR(dev);
+    printk(KERN_ALERT "Hello, KhyatiSatta\n");
     if (result < 0) {
         printk(KERN_WARNING "Can't get major %d\n", aesd_major);
         return result;
     }
+    printk(KERN_ALERT "Hello, KhyatiSatta\n");
     memset(&aesd_device,0,sizeof(struct aesd_dev));
+    printk(KERN_ALERT "Hello, KhyatiSatta\n");
 
     /**
      * TODO: initialize the AESD specific portion of the device
@@ -267,12 +271,15 @@ int aesd_init_module(void)
 
     // Initialize the mutex
     mutex_init(&aesd_device.rw_mutex_lock);
+    printk(KERN_ALERT "Hello, KhyatiSatta\n");
 
     result = aesd_setup_cdev(&aesd_device);
+    printk(KERN_ALERT "Hello, KhyatiSatta\n");
 
     if( result ) {
         unregister_chrdev_region(dev, 1);
     }
+    printk(KERN_ALERT "Hello, KhyatiSatta\n");
     return result;
 
 }
