@@ -286,7 +286,6 @@ void aesd_cleanup_module(void)
     devno = MKDEV(aesd_major, aesd_minor);
 
     cdev_del(&aesd_device.cdev);
-    printk(KERN_ALERT "Hello, KhyatiSatta\n");
     /**
      * TODO: cleanup AESD specific poritions here as necessary
      */
