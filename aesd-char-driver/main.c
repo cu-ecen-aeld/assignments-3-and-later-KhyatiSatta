@@ -284,6 +284,8 @@ void aesd_cleanup_module(void)
 
     dev_t devno = MKDEV(aesd_major, aesd_minor);
 
+    printk(KERN_INFO "Cleanup");
+
     cdev_del(&aesd_device.cdev);
 
     /**

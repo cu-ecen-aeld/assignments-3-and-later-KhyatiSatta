@@ -31,7 +31,7 @@ struct aesd_dev
      */
     struct cdev cdev;                                          /* Char device structure*/
     struct aesd_circular_buffer rw_circular_buffer;            /* Circular buffer*/
-    struct mutex rw_mutex_lock;                                /* Mutex   */
+    struct mutex rw_mutex_lock;                                /* Mutex */
     size_t rw_buff_size;                                       /* Size of the copy buffer */
     char *rw_buff_ptr;                                          
 };
