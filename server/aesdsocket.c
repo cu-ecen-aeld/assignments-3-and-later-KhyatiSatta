@@ -35,7 +35,14 @@ References: Beej's guide and lecture material
 #define ERROR  (-1)
 
 // Global - File path
+
+#define USE_AESD_CHAR_DEVICE (1u)
+
+#if (USE_AESD_CHAR_DEVICE == 1u)
+const char* file_path = "/dev/aesdchar";
+#else
 const char* file_path = "/var/tmp/aesdsocketdata";
+#endif
 
 
 // Global - The file and socket descriptors are global for being to able take action in the signal handler
@@ -45,8 +52,10 @@ int fd = 0;
 // Global - Flag to track if the execution was complete
 int is_exec_complete = 0;
 
-// Global - Flag to track if SIGALARM was triggered
-int is_alarm = 0;
+#if (USE_AESD_CHAR_DEVICE != 1u)
+    // Global - Flag to track if SIGALARM was triggered
+    int is_alarm = 0;
+#endif
 
 // Global - Mutex lock for thread synchronization
 pthread_mutex_t mutex;
@@ -76,6 +85,8 @@ void addFirst(node_t **head_ref , node_t *new_node)
 /********************************************************************/
 
 /***************************TIMER***********************************/
+
+#if (USE_AESD_CHAR_DEVICE != 1u)
 // Global - Timer variables
 timer_t timer;
 
@@ -166,6 +177,8 @@ static int logTimestamp()
 
     return SUCCESS;
 }
+
+#endif
 /********************************************************************/
 
 
@@ -234,10 +247,12 @@ void signalHandler(int signal)
         is_exec_complete = 1;
         break;
 
-        case SIGALRM:
-        syslog(LOG_DEBUG ,"Caught signal SIGALARM\n");
-        is_alarm = 1;
-        break;
+        #if (USE_AESD_CHAR_DEVICE != 1u)
+            case SIGALRM:
+            syslog(LOG_DEBUG ,"Caught signal SIGALARM\n");
+            is_alarm = 1;
+            break;
+        #endif
     }
 
      
@@ -276,12 +291,14 @@ void cleanExit()
         syslog(LOG_ERR , "Error with destroying mutex with errno: %d\n", errno);
     }
 
-    // Delete the timer
-    ret_status = timer_delete(timer);
-    // Error check
-    if(ERROR == ret_status){
-        syslog(LOG_ERR , "Error with deleting the timer with errno: %d\n", errno);
-    }
+    #if(USE_AESD_CHAR_DEVICE == 0u)
+        // Delete the timer
+        ret_status = timer_delete(timer);
+        // Error check
+        if(ERROR == ret_status){
+            syslog(LOG_ERR , "Error with deleting the timer with errno: %d\n", errno);
+        }
+    #endif
 
     // Close the logging utility
     closelog();
@@ -448,7 +465,7 @@ int main(int argc , char *argv[])
     // Register the signals 
     signal(SIGINT , signalHandler);
     signal(SIGTERM , signalHandler);
-    signal(SIGALRM , signalHandler);
+    // signal(SIGALRM , signalHandler);
 
     // Flag to track the if daemon is to be created
     uint8_t daemon_flag = 0;
@@ -475,6 +492,7 @@ int main(int argc , char *argv[])
     fd = open(file_path , O_RDWR | O_CREAT | O_TRUNC, S_IWUSR | S_IRUSR | S_IWGRP | S_IRGRP | S_IROTH);
     // Error check
     if (ERROR == fd ){
+        printf("Error opening file\n");
         syslog(LOG_ERR , "open\n");
         return -1;
     }
@@ -550,8 +568,10 @@ int main(int argc , char *argv[])
     struct sockaddr client_addr;
     socklen_t addr_size = sizeof(client_addr);
 
-    // Starting timer
-    createTimer();
+    #if (USE_AESD_CHAR_DEVICE != 1u)
+        // Starting timer
+        createTimer();
+    #endif
 
     // Initialize the mutex
     pthread_mutex_init(&mutex, NULL);
@@ -562,11 +582,12 @@ int main(int argc , char *argv[])
 
     // Loop until complete_execution flag is set
     while(!is_exec_complete) {
-
-        if(is_alarm){
-            is_alarm = 0;
-            logTimestamp();
-        }
+        #if (USE_AESD_CHAR_DEVICE != 1u)
+            if(is_alarm){
+                is_alarm = 0;
+                logTimestamp();
+            }
+        #endif
 
         // Continuously restarting connections in the while(1) loop
         int new_fd = accept(sd, (struct sockaddr *)&client_addr, &addr_size);
