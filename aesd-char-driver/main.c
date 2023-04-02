@@ -90,7 +90,13 @@ loff_t aesd_llseek(struct file *filp, loff_t off, int whence)
 
     // Reference: Lecture video
     // Wrapper and supporting function to implement own llseek function
-    retval = fixed_size_llseek(filp , off , whence , dev->)
+    retval = fixed_size_llseek(filp , off , whence , llseek_dev->rw_circular_buffer.total_buff_size);
+
+    // Unlock after making the changes to the kernel
+    mutex_unlock(&aesd_device.rw_mutex_lock);
+
+    // To return any error with the wrapper function fixed_size_llseek()
+    return retval;
 }
 
 ssize_t aesd_read(struct file *filp, char __user *buf, size_t count,
@@ -264,6 +270,7 @@ struct file_operations aesd_fops = {
     .write =    aesd_write,
     .open =     aesd_open,
     .release =  aesd_release,
+    .lleek = aesd_llseek,
 };
 
 static int aesd_setup_cdev(struct aesd_dev *dev)
