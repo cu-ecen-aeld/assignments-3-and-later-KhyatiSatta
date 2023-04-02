@@ -59,6 +59,14 @@ int aesd_release(struct inode *inode, struct file *filp)
     return 0;
 }
 
+// TODO:  Option 2 (recc): Own llseek function using fixed_size_llseek??
+// Use it inside the custom function, as a wrapper, (Lecture video)
+// Use totatl size of cb as size paramater
+
+// TODO: In write, update f_pos pointer (Not from filp)
+
+// TODO: ioctl (fill the structure in .h file) (Lecture video - A9 overview)
+
 ssize_t aesd_read(struct file *filp, char __user *buf, size_t count,
                 loff_t *f_pos)
 {
