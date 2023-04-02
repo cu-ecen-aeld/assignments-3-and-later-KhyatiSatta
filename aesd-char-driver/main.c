@@ -20,6 +20,7 @@
 #include "aesdchar.h"
 #include "linux/slab.h"
 #include "linux/string.h"
+#include "aesd_ioctl.h"
 int aesd_major =   0; // use dynamic major
 int aesd_minor =   0;
 
@@ -66,6 +67,31 @@ int aesd_release(struct inode *inode, struct file *filp)
 // TODO: In write, update f_pos pointer (Not from filp)
 
 // TODO: ioctl (fill the structure in .h file) (Lecture video - A9 overview)
+
+// Custom llseek function to modify the file pointer position
+// It uses the fixed_size_llseek() function to make the change in the kernel
+loff_t aesd_llseek(struct file *filp, loff_t off, int whence)
+{
+    loff_t retval = 0;
+
+    // Mutex return values
+    int ret_status = 0;
+
+    // Store filp structure private data in a local data variable
+    struct aesd_dev *llseek_dev =  filp->private_data;
+
+    ret_status = mutex_lock_interruptible(&aesd_device.rw_mutex_lock);
+
+    // Error check
+    if (ret_status != 0){
+        retval = -ERESTARTSYS;
+        return retval;
+    }
+
+    // Reference: Lecture video
+    // Wrapper and supporting function to implement own llseek function
+    retval = fixed_size_llseek(filp , off , whence , dev->)
+}
 
 ssize_t aesd_read(struct file *filp, char __user *buf, size_t count,
                 loff_t *f_pos)

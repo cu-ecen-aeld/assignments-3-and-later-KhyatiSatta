@@ -104,12 +104,16 @@ char* aesd_circular_buffer_add_entry(struct aesd_circular_buffer *buffer, const 
    // Check for full condition before writing to the buffer; if full, increment the read pointer and return the last written value (most recent)
    if (buffer->full == true) {
     buffer->out_offs = move_pointer(buffer->out_offs);
+    buffer->total_buff_size -= buffer->entry[buffer->in_offs].size;
     ret_ptr = (char *)buffer->entry[buffer->in_offs].buffptr;
    }
 
     // Write the entry (data and the number of bytes) to the buffer
     buffer->entry[buffer->in_offs].buffptr = add_entry->buffptr;
     buffer->entry[buffer->in_offs].size = add_entry->size;
+
+    // Increment the toatl size every time buffer is written to
+    buffer->total_buff_size += add_entry->size;
 
     //Increment the write pointer
     buffer->in_offs = move_pointer(buffer->in_offs);
