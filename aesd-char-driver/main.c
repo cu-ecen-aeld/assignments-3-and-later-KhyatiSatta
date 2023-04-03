@@ -70,6 +70,57 @@ int aesd_release(struct inode *inode, struct file *filp)
 
 // Custom llseek function to modify the file pointer position
 // It uses the fixed_size_llseek() function to make the change in the kernel
+static long aesd_adjust_file_offset(struct file *filp , unsigned int write_cmd , unsigned int write_cmd_offset)
+{
+    long ret_val = 0;
+
+    // Iterator
+    int i = 0;
+
+    int ret_status = 0;
+
+    // Store the temporary value of the f_pos before writing to the filp member
+    uint32_t temp_fpos = 0;
+    
+    // Structure to reference the circular buffer
+    struct aesd_dev *dev_offset = filp->private_data;
+
+    // Error check 1: If the write command is greater than the allowed number of entries aka 9
+    if (write_cmd > (AESDCHAR_MAX_WRITE_OPERATIONS_SUPPORTED - 1)){
+        ret_val = -EINVAL;
+        return ret_val;
+    }
+
+    // Error check 2: If the write command offset is greater than allowed offset
+    if (write_cmd_offset >= dev_offset->rw_circular_buffer.entry[write_cmd].size){
+        ret_val = -EINVAL;
+        return ret_val;
+    }
+
+    // Locking is necessary since you don't want to operate on a stale copy of the circular buffer
+    ret_status = mutex_lock_interruptible(&dev_offset->rw_mutex_lock);
+
+    // Error check
+    if (ret_status != 0){
+        ret_val = -ERESTARTSYS;
+        return ret_val;
+    }
+
+    for (i = 0; i < write_cmd; i++){
+        // Increment the temp file position 
+        temp_fpos += dev_offset->rw_circular_buffer.entry[i].size;
+    }
+
+    // Finally, increment it by the required offset in the given command
+    temp_fpos += write_cmd_offset;
+
+    filp->f_pos = temp_fpos;
+
+    mutex_unlock(&dev_offset->rw_mutex_lock);
+
+    return ret_val;
+}
+
 loff_t aesd_llseek(struct file *filp, loff_t off, int whence)
 {
     loff_t retval = 0;
@@ -97,6 +148,42 @@ loff_t aesd_llseek(struct file *filp, loff_t off, int whence)
 
     // To return any error with the wrapper function fixed_size_llseek()
     return retval;
+}
+
+// Ioctl support
+// Reference: Linux device drivers book
+int aesd_ioctl(struct file *filp, unsigned int cmd, unsigned long arg) 
+{
+    int ret = 0;
+
+    // Reference: Lecture video
+    struct aesd_seekto seekto;
+
+    // Reference: Linux Device drivers book
+    /*
+    * extract the type and number bitfields, and don't decode
+    * wrong cmds: return ENOTTY (inappropriate ioctl) before access_ok(  )
+    */
+    if (_IOC_TYPE(cmd) != AESD_IOC_MAGIC) return -ENOTTY;
+    if (_IOC_NR(cmd) > AESDCHAR_IOC_MAXNR) return -ENOTTY;
+
+    switch(cmd){
+        case AESDCHAR_IOCSEEKTO:
+        if (copy_from_user(&seekto, (const void __user *)arg, sizeof(seekto)) != 0 ) {
+            ret = -EFAULT;
+        } else {
+            ret = aesd_adjust_file_offset(filp, seekto.write_cmd, seekto.write_cmd_offset);
+        }
+        break; 
+
+        // By default if wrong command is issued, ENOTTY should be returned
+        // Can also return EINVAL
+        default:
+            ret = -ENOTTY;
+            break;
+    }  
+
+    return ret; 
 }
 
 ssize_t aesd_read(struct file *filp, char __user *buf, size_t count,
@@ -270,7 +357,8 @@ struct file_operations aesd_fops = {
     .write =    aesd_write,
     .open =     aesd_open,
     .release =  aesd_release,
-    .lleek = aesd_llseek,
+    .llseek = aesd_llseek,
+    .unlocked_ioctl = aesd_ioctl
 };
 
 static int aesd_setup_cdev(struct aesd_dev *dev)

@@ -24,6 +24,7 @@ References: Beej's guide and lecture material
 #include <pthread.h>
 #include <time.h>
 #include <sys/time.h>
+#include "aesd_ioctl.h"
 
 // Macros for socket communication
 #define BACKLOG   (20u)
@@ -40,6 +41,7 @@ References: Beej's guide and lecture material
 
 #if (USE_AESD_CHAR_DEVICE == 1u)
 const char* file_path = "/dev/aesdchar";
+const char *aesd_command = "AESDCHAR_IOCSEEKTO:"
 #else
 const char* file_path = "/var/tmp/aesdsocketdata";
 #endif
@@ -229,7 +231,9 @@ int createDaemon()
     }
     return 0;
 }
-/********************************************************************/
+/************************************************************************************/
+
+/************************************************************************************/
 
 // Signal handler for SIGINT, SIGTERM and SIGALRM signals
 void signalHandler(int signal)
@@ -385,15 +389,41 @@ void *socketThreadfunc(void* threadparams)
             syslog(LOG_ERR , "mutex lock\n");
         }
 
-        // Write the data packet to the file
-        int buffer_len = ((datapacket + 1) + (BUFFER_SIZE * realloc_int));
-        int write_len = write(fd , write_buffer , buffer_len);
-        // Error check
-        if(ERROR == write_len){
-            syslog(LOG_ERR , "write\n");
-        }
+        // IOCTL logic
 
-        file_size += write_len;
+        struct aesd_seekto aesd_ioctl;
+
+        // Compare if the string is the same as the required command
+        if (!strncmp(write_buffer , aesd_command , strlen(aesd_command))){
+            // Extract X
+            while(*write_buffer != ":"){
+                write_buffer++;
+            }
+            write_buffer++;
+            aesd_ioctl.write_cmd = atoi(*write_buffer);
+
+            // Extract Y
+            write_buffer += 2;
+            aesd_ioctl.write_cmd_offset = atoi(*write_buffer);        
+
+            int ret_status = ioctl(fd , AESDCHAR_IOCSEEKTO , &aesd_ioctl);
+
+            // Error check 
+            if (ret_status != 0){
+                syslog(LOG_ERR , "ioctl\n");
+            }
+        }
+        else{
+            // Write the data packet to the file
+            int buffer_len = ((datapacket + 1) + (BUFFER_SIZE * realloc_int));
+            int write_len = write(fd , write_buffer , buffer_len);
+            // Error check
+            if(ERROR == write_len){
+                syslog(LOG_ERR , "write\n");
+            }
+            file_size += write_len;
+
+        }
 
         // Reset the reallocation tracking flag and the final size tracking flag
         realloc_int = 0, final_size = 1;
@@ -481,8 +511,6 @@ int main(int argc , char *argv[])
             daemon_flag = 0;
         }
     }
-    
-
     // Variable to store the return status
     int ret_status = 0;
     struct addrinfo *servinfo;
