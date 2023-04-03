@@ -152,9 +152,9 @@ loff_t aesd_llseek(struct file *filp, loff_t off, int whence)
 
 // Ioctl support
 // Reference: Linux device drivers book
-int aesd_ioctl(struct file *filp, unsigned int cmd, unsigned long arg) 
+long aesd_ioctl(struct file *filp, unsigned int cmd, unsigned long arg) 
 {
-    int ret = 0;
+    long ret = 0;
 
     // Reference: Lecture video
     struct aesd_seekto seekto;

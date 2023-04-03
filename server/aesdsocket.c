@@ -24,7 +24,7 @@ References: Beej's guide and lecture material
 #include <pthread.h>
 #include <time.h>
 #include <sys/time.h>
-#include "aesd_ioctl.h"
+#include "../aesd-char-driver/aesd_ioctl.h"
 
 // Macros for socket communication
 #define BACKLOG   (20u)
@@ -39,9 +39,10 @@ References: Beej's guide and lecture material
 
 #define USE_AESD_CHAR_DEVICE (1u)
 
+const char *aesd_command = "AESDCHAR_IOCSEEKTO:";
+
 #if (USE_AESD_CHAR_DEVICE == 1u)
 const char* file_path = "/dev/aesdchar";
-const char *aesd_command = "AESDCHAR_IOCSEEKTO:"
 #else
 const char* file_path = "/var/tmp/aesdsocketdata";
 #endif
@@ -395,17 +396,22 @@ void *socketThreadfunc(void* threadparams)
 
         // Compare if the string is the same as the required command
         if (!strncmp(write_buffer , aesd_command , strlen(aesd_command))){
+
+            char *temp_buffer = write_buffer;
+            
             // Extract X
-            while(*write_buffer != ":"){
-                write_buffer++;
+            while(*temp_buffer != ':'){
+                temp_buffer++;
             }
-            write_buffer++;
-            aesd_ioctl.write_cmd = atoi(*write_buffer);
+            temp_buffer++;
+            aesd_ioctl.write_cmd = (*temp_buffer - '0');
+            // printf("Cmd:%d\n", aesd_ioctl.write_cmd);
 
             // Extract Y
-            write_buffer += 2;
-            aesd_ioctl.write_cmd_offset = atoi(*write_buffer);        
-
+            temp_buffer += 2;
+            aesd_ioctl.write_cmd_offset = (*temp_buffer - '0');    
+            // printf("Offset:%d\n", aesd_ioctl.write_cmd_offset);    
+ 
             int ret_status = ioctl(fd , AESDCHAR_IOCSEEKTO , &aesd_ioctl);
 
             // Error check 
@@ -435,13 +441,6 @@ void *socketThreadfunc(void* threadparams)
         // Error check
         if(send_buffer == NULL){
             syslog(LOG_ERR , "malloc\n");
-        }
-
-        // Go to the beginning of the file using lseek
-        off_t seek_status = lseek(fd , 0 , SEEK_SET);
-        // Error check
-        if(seek_status == -1){
-            syslog(LOG_ERR , "lseek\n");
         }
 
         ssize_t bytes_read;
