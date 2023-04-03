@@ -40,6 +40,8 @@ References: Beej's guide and lecture material
 #define USE_AESD_CHAR_DEVICE (1u)
 
 const char *aesd_command = "AESDCHAR_IOCSEEKTO:";
+#define POINTER_FOR_X (19u)
+#define POINTER_FOR_Y (2u)
 
 #if (USE_AESD_CHAR_DEVICE == 1u)
 const char* file_path = "/dev/aesdchar";
@@ -398,22 +400,18 @@ void *socketThreadfunc(void* threadparams)
         if (!strncmp(write_buffer , aesd_command , strlen(aesd_command))){
 
             char *temp_buffer = write_buffer;
-            
+
             // Extract X
-            while(*temp_buffer != ':'){
-                temp_buffer++;
-            }
-            temp_buffer++;
+            temp_buffer += POINTER_FOR_X;
             aesd_ioctl.write_cmd = (*temp_buffer - '0');
             // printf("Cmd:%d\n", aesd_ioctl.write_cmd);
 
             // Extract Y
-            temp_buffer += 2;
+            temp_buffer += POINTER_FOR_Y;
             aesd_ioctl.write_cmd_offset = (*temp_buffer - '0');    
             // printf("Offset:%d\n", aesd_ioctl.write_cmd_offset);    
  
             int ret_status = ioctl(fd , AESDCHAR_IOCSEEKTO , &aesd_ioctl);
-
             // Error check 
             if (ret_status != 0){
                 syslog(LOG_ERR , "ioctl\n");
