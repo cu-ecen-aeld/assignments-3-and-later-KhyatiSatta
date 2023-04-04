@@ -72,6 +72,7 @@ int aesd_release(struct inode *inode, struct file *filp)
 // It uses the fixed_size_llseek() function to make the change in the kernel
 static long aesd_adjust_file_offset(struct file *filp , unsigned int write_cmd , unsigned int write_cmd_offset)
 {
+    
     long ret_val = 0;
 
     // Iterator
@@ -85,6 +86,8 @@ static long aesd_adjust_file_offset(struct file *filp , unsigned int write_cmd ,
     // Structure to reference the circular buffer
     struct aesd_dev *dev_offset = filp->private_data;
 
+    PDEBUG("adjust 1\n");
+
     // Error check 1: If the write command is greater than the allowed number of entries aka 9
     if (write_cmd > (AESDCHAR_MAX_WRITE_OPERATIONS_SUPPORTED - 1)){
         ret_val = -EINVAL;
@@ -97,6 +100,8 @@ static long aesd_adjust_file_offset(struct file *filp , unsigned int write_cmd ,
         return ret_val;
     }
 
+    PDEBUG("adjust 2\n");
+
     // Locking is necessary since you don't want to operate on a stale copy of the circular buffer
     ret_status = mutex_lock_interruptible(&dev_offset->rw_mutex_lock);
 
@@ -106,17 +111,25 @@ static long aesd_adjust_file_offset(struct file *filp , unsigned int write_cmd ,
         return ret_val;
     }
 
+    PDEBUG("adjust 3\n");
+
     for (i = 0; i < write_cmd; i++){
         // Increment the temp file position 
         temp_fpos += dev_offset->rw_circular_buffer.entry[i].size;
     }
+
+    PDEBUG("adjust 4\n");
 
     // Finally, increment it by the required offset in the given command
     temp_fpos += write_cmd_offset;
 
     filp->f_pos = temp_fpos;
 
+    PDEBUG("adjust 5\n");
+
     mutex_unlock(&dev_offset->rw_mutex_lock);
+
+    PDEBUG("adjust 6\n");
 
     return ret_val;
 }
@@ -173,6 +186,10 @@ long aesd_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
             ret = -EFAULT;
         } else {
             ret = aesd_adjust_file_offset(filp, seekto.write_cmd, seekto.write_cmd_offset);
+
+            if (ret != 0){
+                PDEBUG("Error in adjust function: %ld\n", ret);
+            }
         }
         break; 
 
