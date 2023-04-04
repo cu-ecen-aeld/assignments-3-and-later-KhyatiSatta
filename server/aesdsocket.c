@@ -423,6 +423,9 @@ void *socketThreadfunc(void* threadparams)
             }
         }
         else{
+
+            syslog(LOG_INFO, "Do you just write?\n");
+            printf("Write REALLY\n");
             // Write the data packet to the file
             int buffer_len = ((datapacket + 1) + (BUFFER_SIZE * realloc_int));
             write_len = write(fd , write_buffer , buffer_len);
