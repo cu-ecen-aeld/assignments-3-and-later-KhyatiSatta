@@ -53,6 +53,7 @@ const char* file_path = "/var/tmp/aesdsocketdata";
 // Global - The file and socket descriptors are global for being to able take action in the signal handler
 int sd = 0;
 int fd = 0;
+static bool fd_flag = 0;
 
 // Global - Flag to track if the execution was complete
 int is_exec_complete = 0;
@@ -322,7 +323,6 @@ void *socketThreadfunc(void* threadparams)
     // Log the iP adddress 
     struct sockaddr_in * ip_client = (struct sockaddr_in *)&thread_var->client_addr;
     syslog(LOG_INFO , "Accepted connection from %s\n", inet_ntoa(ip_client->sin_addr)); 
-    printf("Accepted connection!!!!!\n");
 
     // Declare a static buffers: One to get data from recv() 
     char recv_buffer[BUFFER_SIZE];
@@ -380,7 +380,6 @@ void *socketThreadfunc(void* threadparams)
             }
         }
     }
-    printf("Got the data!!!!!\n");
 
     if(newline_flag){
         // Reset the flag
@@ -399,35 +398,28 @@ void *socketThreadfunc(void* threadparams)
 
         struct aesd_seekto aesd_ioctl;
 
-        syslog(LOG_INFO,"Before strncmp\n");
-
         // Compare if the string is the same as the required command
         if (!strncmp(write_buffer , aesd_command , strlen(aesd_command))){
-            syslog(LOG_INFO,"In strncmp\n");
 
             char *temp_buffer = write_buffer;
 
             // Extract X
             temp_buffer += POINTER_FOR_X;
             aesd_ioctl.write_cmd = (*temp_buffer - '0');
-            printf("Cmd:%d\n", aesd_ioctl.write_cmd);
+            // printf("Cmd:%d\n", aesd_ioctl.write_cmd);
 
             // Extract Y
             temp_buffer += POINTER_FOR_Y;
             aesd_ioctl.write_cmd_offset = (*temp_buffer - '0');    
-            printf("Offset:%d\n", aesd_ioctl.write_cmd_offset);    
+            // printf("Offset:%d\n", aesd_ioctl.write_cmd_offset);    
  
             int ret_status = ioctl(fd , AESDCHAR_IOCSEEKTO , &aesd_ioctl);
             // Error check 
             if (ret_status != 0){
                 printf("Error here\n");
-                syslog(LOG_ERR , "ioctl\n");
             }
         }
         else{
-
-            syslog(LOG_INFO, "Do you just write?\n");
-            printf("Write REALLY\n");
             // Write the data packet to the file
             int buffer_len = ((datapacket + 1) + (BUFFER_SIZE * realloc_int));
             write_len = write(fd , write_buffer , buffer_len);
@@ -436,11 +428,7 @@ void *socketThreadfunc(void* threadparams)
                 syslog(LOG_ERR , "write\n");
             }
 
-            syslog(LOG_INFO,"In write\n");
-
         }
-
-        syslog(LOG_INFO, "After strncmp\n");
 
         file_size += write_len;
 
@@ -528,15 +516,6 @@ int main(int argc , char *argv[])
     struct addrinfo *servinfo;
     struct addrinfo hints;
 
-    // File to write the data from the socket
-    fd = open(file_path , O_RDWR | O_CREAT | O_TRUNC, S_IWUSR | S_IRUSR | S_IWGRP | S_IRGRP | S_IROTH);
-    // Error check
-    if (ERROR == fd ){
-        printf("Error opening file\n");
-        syslog(LOG_ERR , "open\n");
-        return -1;
-    }
-
     printf("Socket Application started\n");
 
     // Variable to use for reusing the port logic
@@ -616,8 +595,6 @@ int main(int argc , char *argv[])
     // Initialize the mutex
     pthread_mutex_init(&mutex, NULL);
 
-    printf("About to spawn threads!!!!!\n");
-
     // Create head, current and previous nodes for linked list
     node_t *head = NULL;
     node_t *current, *previous;
@@ -643,6 +620,18 @@ int main(int argc , char *argv[])
             syslog(LOG_ERR , "accept\n");   
             continue;
         }
+        if(!fd_flag){
+            // File to write the data from the socket
+            fd = open(file_path , O_RDWR | O_CREAT | O_TRUNC, S_IWUSR | S_IRUSR | S_IWGRP | S_IRGRP | S_IROTH);
+            // Error check
+            if (ERROR == fd ){
+                printf("Error opening file\n");
+                syslog(LOG_ERR , "open\n");
+                return -1;
+            }
+            fd_flag = 1;
+        }
+         
 
         // Malloc new node
         node_t *new_node = (node_t *)malloc(sizeof(node_t));
@@ -664,7 +653,6 @@ int main(int argc , char *argv[])
             syslog(LOG_ERR , "pthread_create\n");
             printf("Error in pthread_create with err number: %d", errno);
         } 
-        printf("Threads spawned!!!!!\n");
 
         // Add the new node to the head of the linked list
         addFirst(&head, new_node); 
