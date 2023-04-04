@@ -414,6 +414,7 @@ void *socketThreadfunc(void* threadparams)
             int ret_status = ioctl(fd , AESDCHAR_IOCSEEKTO , &aesd_ioctl);
             // Error check 
             if (ret_status != 0){
+                printf("Error here\n");
                 syslog(LOG_ERR , "ioctl\n");
             }
         }
