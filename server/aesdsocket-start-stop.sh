@@ -9,6 +9,7 @@
 case "$1" in
     start)
         echo "Starting aesdsocket"
+        echo "Pliss"
         /usr/bin/aesdchar_load
         start-stop-daemon -S -n aesdsocket -a /usr/bin/aesdsocket -- -d
         ;;
