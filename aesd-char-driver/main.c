@@ -189,6 +189,7 @@ long aesd_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
         // By default if wrong command is issued, ENOTTY should be returned
         // Can also return EINVAL
         default:
+            PDEBUG("Did you come here\n");
             ret = -ENOTTY;
             break;
     }  
