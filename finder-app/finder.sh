@@ -1,9 +1,8 @@
+#!/bin/sh
 #ECEN-5713 Advanced Embedded Software Development
 #Author name: Khyati Satta
 #Date: 01/22/2023
 #File Description: Finder script to find number of files in a given directory containing a given expression
-
-#!/bin/bash
 
 #Store the first(the directory) and second(the string to search in the files)command line arguments into variables 
 direc=$1

@@ -1,0 +1,13 @@
+#!/bin/sh
+module=aesdchar
+device=aesdchar
+cd `dirname $0`
+
+echo "Before unload"
+# invoke rmmod with all arguments we got
+rmmod $module || exit 1
+echo "After unload"
+
+# Remove stale nodes
+
+rm -f /dev/${device}

@@ -1,4 +1,12 @@
 #include "systemcalls.h"
+#include <unistd.h>
+#include <errno.h>
+#include <fcntl.h>
+#include <sys/stat.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <sys/types.h>
+#include <sys/wait.h>
 
 /**
  * @param cmd the command to execute with system()
@@ -15,9 +23,24 @@ bool do_system(const char *cmd)
  *  Call the system() function with the command set in the cmd
  *   and return a boolean true if the system() call completed with success
  *   or false() if it returned a failure
-*/
+*/  
+    // The return status of the system shell command is stored to make error checks
+    int ret_status = system(cmd);
 
-    return true;
+    // Error check 1: If a child process could not be created, or it's status could not be retrieved
+    if(ret_status == -1){
+        printf("Error: system() function with error %d\n", errno);
+        return false;
+    }
+
+    // Error check 2: If a shell could not be executed in the child process
+    else if(ret_status == 127){
+        return false;
+    }
+    else{
+        return true;
+    }
+    
 }
 
 /**
@@ -59,6 +82,54 @@ bool do_exec(int count, ...)
  *
 */
 
+    //Pid type variable for child pid
+    pid_t child_pid;
+
+    child_pid = fork();
+
+    // Error check 1: Check if there was error in creating the child process
+    if(child_pid == -1){ 
+        perror("Child PID: fork() command");
+        return false;
+    }
+    // Check if it is the child process
+    else if (child_pid == 0){
+        int ret_status = 0;
+        ret_status = execv(command[0], command);
+        // Error check 1`: Error in executing execv 
+        if (ret_status == -1) {
+            perror("Child PID: execv() command");
+        }
+        printf("Error in execv() with error: %d \n", errno);
+        exit(1);
+    }
+    // If not child process 
+    else{
+        int ret_status = 0;
+        pid_t wait_pid = waitpid(child_pid, &ret_status, 0);
+
+        // Error check 1: If there was an issue with waiting pid
+        if(wait_pid == -1){
+            printf("Error executing command: waitpid with error: %d \n", errno);
+            perror("Wait PID: wait() command");
+            return false;
+        } 
+        else{
+            // Error check 2: Check if the process was able to exit 
+            if(WIFEXITED(ret_status)){
+               // Error check 3: Check the exit status
+               if(WEXITSTATUS(ret_status) != 0){
+                return false;
+               } 
+               else {
+                return true;
+               }
+            } 
+            else {
+                return false;
+            }
+        }      
+    }
     va_end(args);
 
     return true;
@@ -91,7 +162,60 @@ bool do_exec_redirect(const char *outputfile, int count, ...)
  *   redirect standard out to a file specified by outputfile.
  *   The rest of the behaviour is same as do_exec()
  *
-*/
+*/  
+    // Integer type variable for the child pid
+    int child_pid;
+
+    // Open the output file with write permission and create if not already created
+    int file_descriptor = open(outputfile, O_WRONLY | O_CREAT | O_TRUNC, 0644); 
+
+    // Error check 1: Check if the file could be opened/created 
+    if (file_descriptor == -1) {
+        printf("Error opening/creating the file\n");
+        perror("open");
+        return false;
+    }
+
+    // Create new child process
+    switch(child_pid = fork()) {
+        // If there is an error
+        case -1: 
+            perror("Child PID:fork() command"); 
+            return false;
+
+        // If it is a child Process
+        case 0: 
+                if(dup2(file_descriptor, 1) < 0) { 
+                perror("Child PID:dup2() command"); 
+                exit(1); 
+            }
+            close(file_descriptor);
+            execv(command[0], command); 
+            perror("Child PID: execv() command"); 
+            exit(1); 
+
+        default:
+            close(file_descriptor);
+            int ret_status = 0;
+            pid_t wait_pid = waitpid(child_pid, &ret_status, 0);
+
+            if (wait_pid == -1) {
+                perror("Wait PID:wait() command");
+                return false;
+            } else {
+                // Check if process exited normally
+                if (WIFEXITED (ret_status)) {
+                    // Checking status of process
+                    if (WEXITSTATUS(ret_status) != 0) {
+                        return false;
+                    } else {
+                        return true;
+                    }
+                } else {
+                    return false;
+                }
+            }
+    }
 
     va_end(args);
 
