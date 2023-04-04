@@ -340,6 +340,7 @@ void *socketThreadfunc(void* threadparams)
     int final_size = 1;
     int realloc_int = 0;
     int file_size = 0;
+    int write_len = 0;
 
 
     // Keep fetching data till there is new line is encountered
@@ -396,20 +397,23 @@ void *socketThreadfunc(void* threadparams)
 
         struct aesd_seekto aesd_ioctl;
 
+        syslog(LOG_INFO,"Before strncmp\n");
+
         // Compare if the string is the same as the required command
         if (!strncmp(write_buffer , aesd_command , strlen(aesd_command))){
+            syslog(LOG_INFO,"In strncmp\n");
 
             char *temp_buffer = write_buffer;
 
             // Extract X
             temp_buffer += POINTER_FOR_X;
             aesd_ioctl.write_cmd = (*temp_buffer - '0');
-            // printf("Cmd:%d\n", aesd_ioctl.write_cmd);
+            printf("Cmd:%d\n", aesd_ioctl.write_cmd);
 
             // Extract Y
             temp_buffer += POINTER_FOR_Y;
             aesd_ioctl.write_cmd_offset = (*temp_buffer - '0');    
-            // printf("Offset:%d\n", aesd_ioctl.write_cmd_offset);    
+            printf("Offset:%d\n", aesd_ioctl.write_cmd_offset);    
  
             int ret_status = ioctl(fd , AESDCHAR_IOCSEEKTO , &aesd_ioctl);
             // Error check 
@@ -421,14 +425,19 @@ void *socketThreadfunc(void* threadparams)
         else{
             // Write the data packet to the file
             int buffer_len = ((datapacket + 1) + (BUFFER_SIZE * realloc_int));
-            int write_len = write(fd , write_buffer , buffer_len);
+            write_len = write(fd , write_buffer , buffer_len);
             // Error check
             if(ERROR == write_len){
                 syslog(LOG_ERR , "write\n");
             }
-            file_size += write_len;
+
+            syslog(LOG_INFO,"In write\n");
 
         }
+
+        syslog(LOG_INFO, "After strncmp\n");
+
+        file_size += write_len;
 
         // Reset the reallocation tracking flag and the final size tracking flag
         realloc_int = 0, final_size = 1;
