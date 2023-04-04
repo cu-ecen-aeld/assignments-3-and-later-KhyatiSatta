@@ -322,6 +322,7 @@ void *socketThreadfunc(void* threadparams)
     // Log the iP adddress 
     struct sockaddr_in * ip_client = (struct sockaddr_in *)&thread_var->client_addr;
     syslog(LOG_INFO , "Accepted connection from %s\n", inet_ntoa(ip_client->sin_addr)); 
+    printf("Accepted connection!!!!!\n");
 
     // Declare a static buffers: One to get data from recv() 
     char recv_buffer[BUFFER_SIZE];
@@ -379,6 +380,7 @@ void *socketThreadfunc(void* threadparams)
             }
         }
     }
+    printf("Got the data!!!!!\n");
 
     if(newline_flag){
         // Reset the flag
@@ -614,6 +616,8 @@ int main(int argc , char *argv[])
     // Initialize the mutex
     pthread_mutex_init(&mutex, NULL);
 
+    printf("About to spawn threads!!!!!\n");
+
     // Create head, current and previous nodes for linked list
     node_t *head = NULL;
     node_t *current, *previous;
@@ -660,6 +664,7 @@ int main(int argc , char *argv[])
             syslog(LOG_ERR , "pthread_create\n");
             printf("Error in pthread_create with err number: %d", errno);
         } 
+        printf("Threads spawned!!!!!\n");
 
         // Add the new node to the head of the linked list
         addFirst(&head, new_node); 
