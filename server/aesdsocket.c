@@ -39,8 +39,8 @@ References: Beej's guide and lecture material
 
 #define USE_AESD_CHAR_DEVICE (1u)
 
-const char *aesd_command = "AESDCHAR_IOCSEEKTO";
-#define POINTER_FOR_X (18u)
+const char *aesd_command = "AESDCHAR_IOCSEEKTO:";
+#define POINTER_FOR_X (19u)
 #define POINTER_FOR_Y (2u)
 
 #if (USE_AESD_CHAR_DEVICE == 1u)
