@@ -24,6 +24,7 @@ References: Beej's guide and lecture material
 #include <pthread.h>
 #include <time.h>
 #include <sys/time.h>
+#include "../aesd-char-driver/aesd_ioctl.h"
 
 // Macros for socket communication
 #define BACKLOG   (20u)
@@ -38,6 +39,10 @@ References: Beej's guide and lecture material
 
 #define USE_AESD_CHAR_DEVICE (1u)
 
+const char *aesd_command = "AESDCHAR_IOCSEEKTO:";
+#define POINTER_FOR_X (19u)
+#define POINTER_FOR_Y (2u)
+
 #if (USE_AESD_CHAR_DEVICE == 1u)
 const char* file_path = "/dev/aesdchar";
 #else
@@ -48,6 +53,7 @@ const char* file_path = "/var/tmp/aesdsocketdata";
 // Global - The file and socket descriptors are global for being to able take action in the signal handler
 int sd = 0;
 int fd = 0;
+static bool fd_flag = 0;
 
 // Global - Flag to track if the execution was complete
 int is_exec_complete = 0;
@@ -229,7 +235,9 @@ int createDaemon()
     }
     return 0;
 }
-/********************************************************************/
+/************************************************************************************/
+
+/************************************************************************************/
 
 // Signal handler for SIGINT, SIGTERM and SIGALRM signals
 void signalHandler(int signal)
@@ -333,6 +341,7 @@ void *socketThreadfunc(void* threadparams)
     int final_size = 1;
     int realloc_int = 0;
     int file_size = 0;
+    int write_len = 0;
 
 
     // Keep fetching data till there is new line is encountered
@@ -385,12 +394,40 @@ void *socketThreadfunc(void* threadparams)
             syslog(LOG_ERR , "mutex lock\n");
         }
 
-        // Write the data packet to the file
-        int buffer_len = ((datapacket + 1) + (BUFFER_SIZE * realloc_int));
-        int write_len = write(fd , write_buffer , buffer_len);
-        // Error check
-        if(ERROR == write_len){
-            syslog(LOG_ERR , "write\n");
+        // IOCTL logic
+
+        struct aesd_seekto aesd_ioctl;
+
+        // Compare if the string is the same as the required command
+        if (!strncmp(write_buffer , aesd_command , strlen(aesd_command))){
+
+            char *temp_buffer = write_buffer;
+
+            // Extract X
+            temp_buffer += POINTER_FOR_X;
+            aesd_ioctl.write_cmd = (*temp_buffer - '0');
+            // printf("Cmd:%d\n", aesd_ioctl.write_cmd);
+
+            // Extract Y
+            temp_buffer += POINTER_FOR_Y;
+            aesd_ioctl.write_cmd_offset = (*temp_buffer - '0');    
+            // printf("Offset:%d\n", aesd_ioctl.write_cmd_offset);    
+ 
+            int ret_status = ioctl(fd , AESDCHAR_IOCSEEKTO , &aesd_ioctl);
+            // Error check 
+            if (ret_status != 0){
+                printf("Error here\n");
+            }
+        }
+        else{
+            // Write the data packet to the file
+            int buffer_len = ((datapacket + 1) + (BUFFER_SIZE * realloc_int));
+            write_len = write(fd , write_buffer , buffer_len);
+            // Error check
+            if(ERROR == write_len){
+                syslog(LOG_ERR , "write\n");
+            }
+
         }
 
         file_size += write_len;
@@ -405,13 +442,6 @@ void *socketThreadfunc(void* threadparams)
         // Error check
         if(send_buffer == NULL){
             syslog(LOG_ERR , "malloc\n");
-        }
-
-        // Go to the beginning of the file using lseek
-        off_t seek_status = lseek(fd , 0 , SEEK_SET);
-        // Error check
-        if(seek_status == -1){
-            syslog(LOG_ERR , "lseek\n");
         }
 
         ssize_t bytes_read;
@@ -481,21 +511,10 @@ int main(int argc , char *argv[])
             daemon_flag = 0;
         }
     }
-    
-
     // Variable to store the return status
     int ret_status = 0;
     struct addrinfo *servinfo;
     struct addrinfo hints;
-
-    // File to write the data from the socket
-    fd = open(file_path , O_RDWR | O_CREAT | O_TRUNC, S_IWUSR | S_IRUSR | S_IWGRP | S_IRGRP | S_IROTH);
-    // Error check
-    if (ERROR == fd ){
-        printf("Error opening file\n");
-        syslog(LOG_ERR , "open\n");
-        return -1;
-    }
 
     printf("Socket Application started\n");
 
@@ -601,6 +620,18 @@ int main(int argc , char *argv[])
             syslog(LOG_ERR , "accept\n");   
             continue;
         }
+        if(!fd_flag){
+            // File to write the data from the socket
+            fd = open(file_path , O_RDWR | O_CREAT | O_TRUNC, S_IWUSR | S_IRUSR | S_IWGRP | S_IRGRP | S_IROTH);
+            // Error check
+            if (ERROR == fd ){
+                printf("Error opening file\n");
+                syslog(LOG_ERR , "open\n");
+                return -1;
+            }
+            fd_flag = 1;
+        }
+         
 
         // Malloc new node
         node_t *new_node = (node_t *)malloc(sizeof(node_t));
